@@ -1,0 +1,60 @@
+provider "azurerm" {
+  # whilst the `version` attribute is optional, we recommend pinning to a given version of the Provider
+  version = "=2.0.0"
+  features {}
+}
+data "azurerm_resource_group" "rg" {
+    name = "rahul-rg"  
+}
+data "azurerm_snapshot" "snapshot" {
+    name = "snapshot"
+    resource_group_name = "${data.azurerm_resource_group.rg.name}"
+}
+resource "azurerm_managed_disk" "copy" {
+  name = "myOsDisk4"
+  location = "${data.azurerm_resource_group.rg.location}"
+  resource_group_name = "${data.azurerm_resource_group.rg.name}"
+  storage_account_type = "Standard_LRS"
+  create_option = "Copy"
+  source_resource_id = "/subscriptions/8eab492d-fb72-4efb-8497-dac3e67650da/resourceGroups/rahul-rg/providers/Microsoft.Compute/snapshots/snapshot"
+  disk_size_gb = "127"  
+}
+#Network creation
+resource "azurerm_virtual_network" "vnet" {
+  name                = "rahul-vnet1"
+  address_space       = ["10.0.0.0/16"]
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
+}
+resource "azurerm_subnet" "subnet" {
+  name                 = "internal"
+  resource_group_name  = data.azurerm_resource_group.rg.name
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  address_prefix       = "10.0.2.0/24"
+}
+resource "azurerm_network_interface" "example" {
+  name                = "example-nic1"
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
+
+  ip_configuration {
+    name                          = "internal"
+    subnet_id                     = azurerm_subnet.subnet.id
+    private_ip_address_allocation = "Dynamic"
+  }
+}
+# Create virtual machine
+resource "azurerm_virtual_machine" "myterraformvm" {
+    name                  = "Test-01"
+    location              = "${data.azurerm_resource_group.rg.location}"
+    resource_group_name   = "${data.azurerm_resource_group.rg.name}"
+    network_interface_ids = ["${azurerm_network_interface.example.id}"]
+    vm_size               = "Standard_DS1_v2"
+    
+    storage_os_disk {
+    name              = "${azurerm_managed_disk.copy.name}"
+    os_type           = "Linux"
+    managed_disk_id   = "${azurerm_managed_disk.copy.id}"
+    create_option     = "Attach"
+    } 
+}       
