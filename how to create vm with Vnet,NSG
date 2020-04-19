@@ -1,0 +1,74 @@
+provider "azurerm" {
+  features {}
+}
+#create Azure RG
+resource "azurerm_resource_group" "example" {
+  name     = "${var.rgname}"
+  location = "West Europe"
+}
+#Create Vnet
+resource "azurerm_virtual_network" "example" {
+  name                = "${var.vnetname}"
+  address_space       = ["${var.vnetcidr}"]
+  location            = azurerm_resource_group.example.location
+  resource_group_name = azurerm_resource_group.example.name
+}
+#Create Subnet
+resource "azurerm_subnet" "example" {
+  name                 = "${var.subnet}"
+  resource_group_name  = azurerm_resource_group.example.name
+  virtual_network_name = azurerm_virtual_network.example.name
+  address_prefix       = "${var.subnetcidr}"
+}
+#### Create Interface for VM
+resource "azurerm_network_interface" "example" {
+  name                = "example-nic"
+  location            = azurerm_resource_group.example.location
+  resource_group_name = azurerm_resource_group.example.name
+
+  ip_configuration {
+    name                          = "${var.subnet}"
+    subnet_id                     = azurerm_subnet.example.id
+    private_ip_address_allocation = "Dynamic"
+    public_ip_address_id = azurerm_public_ip.example.id
+  }
+}
+#Public IP
+resource "azurerm_public_ip" "example" {
+  name                = "acceptanceTestPublicIp1"
+  location            = azurerm_resource_group.example.location
+  resource_group_name = azurerm_resource_group.example.name
+  allocation_method   = "Static"
+
+  tags = {
+    environment = "Production"
+  }
+}
+#### Create Virtual Machine
+resource "azurerm_linux_virtual_machine" "example" {
+  name                = "${var.vmname}"
+  resource_group_name = azurerm_resource_group.example.name
+  location            = azurerm_resource_group.example.location
+  size                = "Standard_F2"
+  admin_username      = "${var.vmusrname}"
+  network_interface_ids = [ azurerm_network_interface.example.id,]
+
+  admin_ssh_key {
+    username   = "${var.vmusrname}"
+    public_key = file("~/.ssh/id_rsa.pub")
+  }
+  os_disk {
+    caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
+  }
+  source_image_reference {
+    publisher = "Canonical"
+    offer     = "UbuntuServer"
+    sku       = "16.04-LTS"
+    version   = "latest"
+  }
+}
+resource "azurerm_network_interface_security_group_association" "example" {
+  network_interface_id      = azurerm_network_interface.example.id
+  network_security_group_id = azurerm_network_security_group.example.id
+}
