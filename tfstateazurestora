@@ -1,0 +1,30 @@
+ create a storage account and container 
+ get the access key of storag account
+use the below method to storage tfstate file in to azure
+terraform {
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "=2.46.0"
+    }
+  }
+    backend "azurerm" {
+        resource_group_name  = "rsgtf"
+        storage_account_name = "tfstatestrrahultest"
+        container_name       = "rsgtf"
+        key                  = "******"
+    }
+
+}
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "rahul-rsg-tf" {
+    name = "rahul-rsg-tf4"
+    location = "westus"
+  
+}
+
+# terraform init command will use the same backend.
