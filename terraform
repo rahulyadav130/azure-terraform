@@ -1,0 +1,6 @@
+terraform version
+terraform -chdir=path/tf
+terraform init initialize the directory
+terraform plan # create an execution plan
+terrafomr apply # apply the changes
+terraform destory # destory the infrasture
