@@ -1,0 +1,32 @@
+Terraform-auth
+# To confirm the current Azure subscription, run az account show.
+az account show
+
+#To use a specific Azure subscription, run az account set.
+az account set --subscription "<subscription_id_or_subscription_name>"
+
+
+# Create SP for authentication--
+
+az ad sp create-for-rbac --name <service_principal_name> --role Contributor --scopes /subscriptions/<subscription_id>
+
+# use the sp details if tf state file-
+
+
+terraform {
+  required_providers {
+    azurerm = {
+      source = "hashicorp/azurerm"
+      version = "~>2.0"
+    }
+  }
+}
+
+provider "azurerm" {
+  features {}
+
+  subscription_id   = "<azure_subscription_id>"
+  tenant_id         = "<azure_subscription_tenant_id>"
+  client_id         = "<service_principal_appid>"
+  client_secret     = "<service_principal_password>"
+}
