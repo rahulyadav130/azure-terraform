@@ -1,0 +1,6 @@
+resource "azurerm_resource_group" "rsg" {
+    count = 4
+    name = "rahul-rsg-${count.index}"
+    location = "Central India"
+  
+}
